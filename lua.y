@@ -69,6 +69,7 @@ since 'v' must be evaluated only once:
 
 #include <string.h>
 #include <stdarg.h>
+#include <string>
 #include "util.h"
 #include "lua_simplifier.h"
 
@@ -76,7 +77,7 @@ since 'v' must be evaluated only once:
 #define YYSTYPE char*
 
 // Error function called by the parser.
-int lua_parser_error(char *s);
+int lua_parser_error(const char *s);
 
 // Take printf-style arguments and return a new string on the heap.
 // The special word '@MarkerAndIndent@' is replaced by a filename:line_number marker and an
@@ -112,7 +113,7 @@ char *Concat(char *s1, const char *s2, bool trim_trailing_newline = false);
 // Misc directives.
 %start file
 %expect 2
-%name-prefix="lua_parser_"
+%name-prefix "lua_parser_"
 %error-verbose
 %pure-parser
 %locations
@@ -127,7 +128,7 @@ opt_block: { lua_parser_indent++; } opt_block_statements
            { lua_parser_indent--; $$ = $2; } ;
 
 opt_block_statements:
-						{ $$ = ""; }
+   						{ $$ = (char *) ""; }
   | last_statement
   | statement_list
   | statement_list last_statement		{ $$ = Concat($1, $2); }
@@ -255,7 +256,7 @@ nobr_statement:
 						  // we can expand outer-scope dofiles inline.
 						  if (strcmp($1, "dofile") == 0 && lua_parser_indent == 0) {
 						    CHECK(strcmp(yylval, $2) == 0);	// Ensure lexxer hasn't read past the string
-						    $$ = "";
+						    $$ = (char *) "";
 						    LexxerPushFile($2);
 						  } else {
 						    $$ = String(@1.filename, @1.line, INDENT"%s(%s);\n", $1, $2);
@@ -272,7 +273,7 @@ br_statement:
 // Rules that make up parts 'if-then-elseif-else' statements.
 
 opt_elseif_block_list:
-						{ $$ = ""; }
+						{ $$ = (char *) ""; }
   | elseif_block_list
   ;
 
@@ -286,7 +287,7 @@ elseif_block:
   ;
 
 opt_else_block:
-						{ $$ = ""; }
+						{ $$ = (char *) ""; }
   | ELSE opt_block				{ $$ = String(@1.filename, @1.line, INDENT"else\n%s", $2); }
   ;
 
@@ -322,12 +323,12 @@ func_name_list:
 // Expressions.
 
 expression:
-    NIL						{ $$ = "nil"; }
-  | FALSE					{ $$ = "false"; }
-  | TRUE					{ $$ = "true"; }
+    NIL						{ $$ = (char *) "nil"; }
+  | FALSE					{ $$ = (char *) "false"; }
+  | TRUE					{ $$ = (char *) "true"; }
   | NUMBER
   | STRING
-  | ELLIPSES					{ $$ = "..."; }
+  | ELLIPSES					{ $$ = (char *) "..."; }
   | FUNCTION function_body			{ $$ = String(@1.filename, @1.line, "function(%s", $2); }
   | nobr_prefix_expression
   | '(' expression ')'				{ $$ = String(@1.filename, @1.line, "(%s)", $2); }
@@ -393,7 +394,7 @@ br_function_call:
   ;
 
 arguments:
-    '(' ')'					{ $$ = ""; }
+    '(' ')'					{ $$ = (char *) ""; }
   | '(' expression_list ')'			{ $$ = $2; }
   | table_constructor
   | STRING
@@ -404,8 +405,8 @@ function_body:
   ;
 
 opt_parameter_list:
-						{ $$ = ""; }
-  | ELLIPSES					{ $$ = "..."; }
+						{ $$ = (char *) ""; }
+  | ELLIPSES					{ $$ = (char *) "..."; }
   | identifier_list
   | identifier_list ',' ELLIPSES		{ $$ = String(@1.filename, @1.line, "%s, ...", $1); }
   ;
@@ -413,7 +414,7 @@ opt_parameter_list:
 // Tables.
 
 table_constructor:
-    '{' '}'					{ $$ = "{}"; }
+    '{' '}'					{ $$ = (char *) "{}"; }
   | '{' { lua_parser_indent++; array_index.push_back(1); } field_list opt_field_separator '}' {
 						  lua_parser_indent--;
 						  array_index.pop_back();
@@ -454,13 +455,13 @@ identifier_list:
   ;
 
 opt_special:
-						{ $$ = ""; }
+						{ $$ = (char *) ""; }
   | SPECIAL
   ;
 
 %%
 
-int lua_parser_error (char *s) {
+int lua_parser_error (const char *s) {
   Panic("%s, at %s:%d", s, LexxerFilename(), LexxerLinecount());
 }
 

@@ -1,0 +1,10 @@
+lua/
+lua_checker_parser.cc
+lua_checker_parser.h
+lua_lexxer.cc
+lua_parser.cc
+lua_parser.h
+lua_checker
+lua_simplifier
+*.d
+*.o

@@ -158,6 +158,7 @@ static bool HandleEndOfFile();
 %option prefix="lua_lexxer_"
 %option outfile="lex.yy.c"
 %option noyywrap
+%option nounput   
 %x special
 
 %%
